@@ -30,6 +30,11 @@ replay_pid*
 node_modules/
 dist/
 
+# Local secrets — API keys live here, never in the repo
+backend/config/
+.env
+.env.local
+
 # Editors / OS
 .idea/
 .vscode/

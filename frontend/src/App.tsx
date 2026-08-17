@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { fetchHealth, type Health } from './api/health'
+import { searchGames, type GameSummary } from './api/games'
 import './App.css'
 
 type Status =
@@ -9,6 +10,9 @@ type Status =
 
 function App() {
   const [status, setStatus] = useState<Status>({ state: 'loading' })
+  const [query, setQuery] = useState('')
+  const [results, setResults] = useState<GameSummary[]>([])
+  const [searchState, setSearchState] = useState<'idle' | 'loading' | 'error'>('idle')
 
   useEffect(() => {
     let cancelled = false
@@ -30,6 +34,23 @@ function App() {
       cancelled = true
     }
   }, [])
+
+  function handleSearch(event: React.FormEvent) {
+    event.preventDefault()
+    const trimmed = query.trim()
+    if (!trimmed) return
+
+    setSearchState('loading')
+    searchGames(trimmed)
+      .then((games) => {
+        setResults(games)
+        setSearchState('idle')
+      })
+      .catch((error: unknown) => {
+        console.error(error)
+        setSearchState('error')
+      })
+  }
 
   return (
     <main className="app">
@@ -53,6 +74,43 @@ function App() {
             <p className="detail">{status.message}</p>
             <p className="detail">Is the Spring Boot app running on port 8080?</p>
           </>
+        )}
+      </section>
+
+      <section className="card search-card">
+        <h2>Search games</h2>
+        <form className="search-row" onSubmit={handleSearch}>
+          <input
+            className="search-input"
+            type="text"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Search for a game..."
+          />
+          <button
+            className="search-button"
+            type="submit"
+            disabled={searchState === 'loading' || !query.trim()}
+          >
+            {searchState === 'loading' ? 'Searching…' : 'Search'}
+          </button>
+        </form>
+
+        {searchState === 'loading' && <p className="detail">Searching…</p>}
+        {searchState === 'error' && <p className="fail">Search failed.</p>}
+
+        {results.length > 0 && (
+          <div className="results-grid">
+            {results.map((game) => (
+              <div key={game.id} className="result">
+                {game.boxArtUrl && (
+                  <img className="cover" src={game.boxArtUrl} alt={game.title} />
+                )}
+                <p className="result-title">{game.title}</p>
+                <p className="result-year">{game.releaseDate?.slice(0, 4) ?? '—'}</p>
+              </div>
+            ))}
+          </div>
         )}
       </section>
     </main>
